@@ -1,0 +1,10 @@
+{
+  "name": "social-delaunay",
+  "authors": [
+    "mroca.dh@gmail.com"
+  ],
+  "description": "Social Delaunay Triangulation in JavaScript",
+  "dependencies": {
+    "delaunay-fast": "~1.0.1"
+  }
+}
