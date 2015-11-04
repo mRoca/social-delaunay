@@ -6,4 +6,3 @@ to transform an image into a grid of triangles.
 ## TODO
 
 * Add social network data (visits, ...) to update dynamicaly the grid.
-
