@@ -8,15 +8,22 @@
 </head>
 <body>
 
-<canvas id="canvas" height="400" width="600" style="border: 1px solid #aaa;"></canvas>
-<canvas id="canvas-target" height="400" width="600" style="border: 1px solid #aaa;"></canvas>
+<canvas id="canvas" height="480" width="600" style="border: 1px solid #aaa;"></canvas>
+<canvas id="canvas-target" height="480" width="600" style="border: 1px solid #aaa;"></canvas>
+
+<p>Drop an image onto the canvas to change it.</p>
 
 <input type="number" id="count" value="50">
 
-<button id="go" style="display: none;">Go</button>
-<button id="save" style="display: none;">Save image</button>
+<button id="go">Go</button>
+<button id="test">TEST</button>
+<button id="save">Save image</button>
+
+<pre id="data"></pre>
 
 <script src="vendor/delaunay-fast/delaunay.js"></script>
+<script src="helpers.js"></script>
+<script src="social-data.js"></script>
 <script src="delaunay-image.js"></script>
 <script>
     (function() {
@@ -25,23 +32,21 @@
                 canvasTarget = document.getElementById("canvas-target"),
                 saveButton = document.getElementById("save"),
                 goButton = document.getElementById("go"),
+                dotsCountInput = document.getElementById("count"),
+                dataPre = document.getElementById("data"),
                 context = canvas.getContext("2d"),
                 img = document.createElement("img"),
-                hasText = true,
-                clearCanvas = function() {
-                    if (hasText) {
-                        context.clearRect(0, 0, canvas.width, canvas.height);
-                        hasText = false;
-                    }
-                };
+                data,
+                socialData
+                ;
 
-        // Adding instructions
-        context.fillText("Drop an image onto the canvas", 240, 200);
+        // Default image
+        img.src = 'example.jpg';
 
-        // Image for loading
+        // Image loading
         img.addEventListener("load", function() {
-            clearCanvas();
             context.drawImage(img, 0, 0, canvas.width, canvas.height);
+            goButton.click();
         }, false);
 
         // To enable drag and drop
@@ -60,7 +65,6 @@
                     // Note: addEventListener doesn't work in Google Chrome for this event
                     reader.onload = function(evt) {
                         img.src = evt.target.result;
-                        goButton.style.display = 'inline-block';
                     };
                     reader.readAsDataURL(file);
                 }
@@ -76,12 +80,52 @@
 
         // Go
         goButton.addEventListener("click", function(e) {
-            var opt = { canvas: canvasTarget, count: document.getElementById("count").value };
-            var result = DelaunayImage.process(img, opt);
-            if(result) {
-                saveButton.style.display = 'inline-block';
+            data = DelaunayImage.getData(img, {canvas: canvasTarget, count: dotsCountInput.value});
+            DelaunayImage.process(data);
+        }, false);
+
+        document.getElementById("test").addEventListener("click", function(e) {
+            if (!data) {
+                return;
             }
-            console.log(opt, result);
+
+//            socialData = SocialData.generateFakeData();
+//            dataPre.innerHTML = JSON.stringify(socialData, null, 4);
+
+            var chosenTriangleId = random(data.triangles.length);
+            var chosenTriangle = data.triangles[chosenTriangleId];
+            var chosenCenter = triangleCentroid(chosenTriangle);
+            var chosenTriangleRate = random(30);
+
+            function directionFactor(coor, centerCoor) {
+                return coor > centerCoor ? -1 : 1;
+            }
+
+            function rateByDistance(distance, maxDistance, rate) {
+                return -1 * Math.pow(distance / maxDistance, 2) * rate;
+            }
+
+            function awayDotFromCenter(dot, center, width, height, rate) {
+                return [
+                    dot[0] + directionFactor(dot[0], center[0]) * rateByDistance(center[0] - dot[0], width, rate),
+                    dot[1] + directionFactor(dot[1], center[1]) * rateByDistance(center[1] - dot[1], height, rate)
+                ];
+            }
+
+            for (var i = 0; i < data.triangles.length; i++) {
+                for (var j = 0; j < data.triangles[i].length; j++) {
+
+                    data.triangles[i][j] = awayDotFromCenter(
+                            data.triangles[i][j],
+                            chosenCenter,
+                            data.canvas.width,
+                            data.canvas.height,
+                            chosenTriangleRate
+                    );
+                }
+            }
+
+            DelaunayImage.process(data);
         }, false);
 
     })();
