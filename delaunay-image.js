@@ -106,7 +106,7 @@ var DelaunayImage;
             var canvas = opt.canvas || document.createElement('canvas');
             var ctx = canvas.getContext('2d');
 
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
             var pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
