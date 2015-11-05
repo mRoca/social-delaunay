@@ -92,23 +92,29 @@
 //            socialData = SocialData.generateFakeData();
 //            dataPre.innerHTML = JSON.stringify(socialData, null, 4);
 
-            var chosenTriangleId = random(data.triangles.length);
-            var chosenTriangle = data.triangles[chosenTriangleId];
-            var chosenCenter = triangleCentroid(chosenTriangle);
-            var chosenTriangleRate = random(30);
+//            var chosenTriangleId = random(data.triangles.length);
+//            var chosenTriangle = data.triangles[chosenTriangleId];
+//            var chosenCenter = triangleCentroid(chosenTriangle);
+            var chosenCenter = [random(200, 400), random(150, 350)];
+            var chosenTriangleRate = random(5, 10);
 
             function directionFactor(coor, centerCoor) {
                 return coor > centerCoor ? -1 : 1;
             }
 
-            function rateByDistance(distance, maxDistance, rate) {
-                return -1 * Math.pow(distance / maxDistance, 2) * rate;
+            function rateByDistance(dotCoor, centerCoor, maxDistance, rate) {
+                var direction = directionFactor(dotCoor, centerCoor);
+
+                var factor1 = direction === -1 ? dotCoor / maxDistance : (maxDistance - dotCoor) / maxDistance;
+                var factor2 = (centerCoor - dotCoor) / maxDistance;
+
+                return direction * -1 * (1 - Math.pow(factor1, 2)) * (1 - Math.pow(factor2, 2)) * rate;
             }
 
             function awayDotFromCenter(dot, center, width, height, rate) {
                 return [
-                    dot[0] + directionFactor(dot[0], center[0]) * rateByDistance(center[0] - dot[0], width, rate),
-                    dot[1] + directionFactor(dot[1], center[1]) * rateByDistance(center[1] - dot[1], height, rate)
+                    Math.max(Math.min(dot[0] + rateByDistance(dot[0], center[0], width, rate), width), 0),
+                    Math.max(Math.min(dot[1] + rateByDistance(dot[1], center[1], height, rate), height), 0)
                 ];
             }
 
