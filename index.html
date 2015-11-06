@@ -17,6 +17,9 @@
 
 <button id="go">Go</button>
 <button id="test">TEST</button>
+<button id="test2">TEST 2</button>
+<button id="animate">ANIMATE</button>
+<button id="animate2">ANIMATE 2</button>
 <button id="save">Save image</button>
 
 <pre id="data"></pre>
@@ -37,7 +40,8 @@
                 context = canvas.getContext("2d"),
                 img = document.createElement("img"),
                 data,
-                socialData
+                socialData,
+                animateTimeout
                 ;
 
         // Default image
@@ -84,6 +88,118 @@
             DelaunayImage.process(data);
         }, false);
 
+        var animateRunning = false;
+        var stopAnimate = false;
+        document.getElementById("animate").addEventListener("click", function(e) {
+            if (!data) {
+                return;
+            }
+
+            if(animateRunning) {
+                stopAnimate = true;
+                return;
+            }
+
+            var center = [data.canvas.width / 2, data.canvas.height / 2];
+            var movePoints = function() {
+                for (var i = 0; i < data.triangles.length; i++) {
+                    for (var j = 0; j < data.triangles[i].length; j++) {
+
+                        var
+                                dot = data.triangles[i][j],
+                                t = Math.PI / 64,
+                                x = dot[0] - center[0],
+                                y = dot[1] - center[1];
+
+                        data.triangles[i][j] = [
+                            center[0] + x * Math.cos(t) + y * Math.sin(t),
+                            center[1] + y * Math.cos(t) - x * Math.sin(t)
+                        ];
+                    }
+                }
+
+                DelaunayImage.process(data);
+
+                if (!stopAnimate) {
+                    setTimeout(movePoints, 100);
+                } else {
+                    animateRunning = false;
+                }
+            };
+
+            animateRunning = true;
+            stopAnimate = false;
+            movePoints();
+        });
+
+        document.getElementById("test2").addEventListener("click", function(e) {
+            if (!data) {
+                return;
+            }
+
+            function distance(dot, center) {
+                return Math.sqrt(Math.pow(center[0] - dot[0], 2) + Math.pow(center[1] - dot[1], 2));
+            }
+
+            function getClosestDot(dots, center) {
+                return dots.reduce(function(prev, curr) {
+                    return distance(prev, center) < distance(curr, center) ? prev : curr;
+                });
+            }
+
+            function awayDotFromCenter(dot, center, rate) {
+                return [
+                    center[0] + (dot[0] - center[0]) * rate,
+                    center[1] + (dot[1] - center[1]) * rate
+                ];
+            }
+
+            var chosenTriangleRate = random(1, 5);
+            if (random(10) > 7) {
+                chosenTriangleRate = 1 / chosenTriangleRate;
+            }
+
+            var center = [data.canvas.width / 2, data.canvas.height / 2];
+
+            var chosenTriangleIds = [];
+            for (var i = 0; i < 3; i++) {
+                chosenTriangleIds.push(random(data.triangles.length));
+            }
+
+            for (i = 0; i < chosenTriangleIds.length; i++) {
+                var chosenTriangle = data.triangles[chosenTriangleIds[i]];
+                var closestDot = getClosestDot(chosenTriangle, center);
+
+                for (var j = 0; j < chosenTriangle.length; j++) {
+                    if (chosenTriangle[j] === closestDot) {
+                        continue;
+                    }
+
+                    data.triangles[chosenTriangleIds[i]][j] = awayDotFromCenter(
+                            data.triangles[chosenTriangleIds[i]][j],
+                            closestDot,
+                            chosenTriangleRate
+                    );
+                }
+            }
+
+            DelaunayImage.process(data);
+        });
+
+        var animateInterval;
+        document.getElementById("animate2").addEventListener("click", function(e) {
+            if (animateInterval) {
+                clearInterval(animateInterval);
+                animateInterval = 0;
+                return;
+            }
+
+            animateInterval = setInterval(function() {
+                document.getElementById('test2').click();
+            }, 200)
+        });
+
+
         document.getElementById("test").addEventListener("click", function(e) {
             if (!data) {
                 return;
@@ -98,17 +214,17 @@
             var chosenCenter = [random(200, 400), random(150, 350)];
             var chosenTriangleRate = random(5, 10);
 
-            function directionFactor(coor, centerCoor) {
-                return coor > centerCoor ? -1 : 1;
+            function directionFactor(dotCoor, centerCoor) {
+                return dotCoor > centerCoor ? 1 : -1;
             }
 
             function rateByDistance(dotCoor, centerCoor, maxDistance, rate) {
                 var direction = directionFactor(dotCoor, centerCoor);
 
-                var factor1 = direction === -1 ? dotCoor / maxDistance : (maxDistance - dotCoor) / maxDistance;
+                var factor1 = direction === 1 ? dotCoor / maxDistance : (maxDistance - dotCoor) / maxDistance;
                 var factor2 = (centerCoor - dotCoor) / maxDistance;
 
-                return direction * -1 * (1 - Math.pow(factor1, 2)) * (1 - Math.pow(factor2, 2)) * rate;
+                return direction * (1 - Math.pow(factor1, 2)) * (1 - Math.pow(factor2, 2)) * rate;
             }
 
             function awayDotFromCenter(dot, center, width, height, rate) {
