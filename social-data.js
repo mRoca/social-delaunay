@@ -5,7 +5,7 @@ var SocialData;
 (function() {
 
     var sources = [
-        'Facebook',
+        'Facebook likes',
         'Twitter',
         'Google search',
         'Youtube',

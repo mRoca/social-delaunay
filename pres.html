@@ -16,7 +16,8 @@
 <p id="instructions" style="margin-top: 50px; color: #aaa; font-style: italic;">
     Click <a href="#" id="toggle" style="color: #eee;">here</a> to toggle the presentation mode.<br />
     Drop an image onto the first image to change it.<br />
-    Refresh the page (F5 or CMD+R) to reset the animation.
+    Refresh the page (F5 or CMD+R) to reset the animation.<br />
+    Click <a href="#" id="removeImg" style="color: #eee;">here</a> to remove saved image.<br />
 </p>
 
 <script src="vendor/delaunay-fast/delaunay.js"></script>
@@ -30,15 +31,27 @@
                 canvasTarget = document.getElementById("canvas-target"),
                 dataPre = document.getElementById("data"),
                 toggleButton = document.getElementById("toggle"),
+                removeImgButton = document.getElementById("removeImg"),
                 context = canvas.getContext("2d"),
                 img = document.createElement("img"),
                 data,
-                socialData;
+                socialData,
+                goIterator = 0;
 
-        // Default image
-        img.src = 'example.jpg';
+        var dataImage = localStorage.getItem('imgData');
+        if(dataImage) {
+            img.src = "data:image/png;base64," + dataImage;
+        } else {
+            // Default image
+            img.src = 'example.jpg';
+        }
 
-        // To enable drag and drop
+        removeImgButton.addEventListener("click", function(e) {
+            e.preventDefault();
+            localStorage.removeItem('imgData');
+            location.reload(true);
+        }, false);
+
         toggleButton.addEventListener("click", function(e) {
             e.preventDefault();
             canvas.style.display = (canvas.style.display === 'none') ? 'inline-block' : 'none';
@@ -67,6 +80,8 @@
                     // Note: addEventListener doesn't work in Google Chrome for this event
                     reader.onload = function(evt) {
                         img.src = evt.target.result;
+                        localStorage.setItem("imgData", getBase64Image(img));
+                        go();
                     };
                     reader.readAsDataURL(file);
                 }
@@ -169,8 +184,12 @@
             DelaunayImage.process(data);
         }
 
-        function nextInterval(currentInterval) {
+        function nextInterval(currentInterval, currentGoIterator) {
             currentInterval = currentInterval || 0;
+
+            if(currentGoIterator != goIterator) {
+                return;
+            }
 
             if (!socialData[currentInterval]) {
                 return;
@@ -179,7 +198,7 @@
             displaySocialData(currentInterval);
 
             setTimeout(function() {
-                nextInterval(currentInterval + 1);
+                nextInterval(currentInterval + 1, currentGoIterator);
             }, 50);
         }
 
@@ -197,14 +216,16 @@
 
         // Go
         function go() {
-            data = DelaunayImage.getData(img, {canvas: canvasTarget, count: 600});
+            goIterator++;
+
+            data = DelaunayImage.getData(img, {canvas: canvasTarget, count: 1000});
             data.trianglesInitialValues = deepClone(data.triangles); // .slice doesn't clone objects in the array
             socialData = SocialData.generateFakeData(minutesIncrement);
             dispatchTrianglesBySource();
 
             yetUpdateTriangles = [];
 
-            nextInterval();
+            nextInterval(0, goIterator);
         };
     })();
 </script>
