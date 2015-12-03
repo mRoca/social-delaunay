@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="Author" content="Michel Roca">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Delaunay</title>
+</head>
+<body style="background: #111; text-align: center; padding-top: 30px;">
+
+<canvas id="canvas" height="480" width="600" style="border: none;"></canvas>
+<canvas id="canvas-target" height="480" width="600" style="border: none;"></canvas>
+
+<pre id="data" style="color: white;"></pre>
+
+<p id="instructions" style="margin-top: 50px; color: #aaa; font-style: italic;">
+    Click <a href="#" id="toggle" style="color: #eee;">here</a> to toggle the presentation mode.<br />
+    Drop an image onto the first image to change it.<br />
+    Refresh the page (F5 or CMD+R) to reset the animation.
+</p>
+
+<script src="vendor/delaunay-fast/delaunay.js"></script>
+<script src="helpers.js"></script>
+<script src="social-data.js"></script>
+<script src="delaunay-image.js"></script>
+<script>
+    (function() {
+        var
+                canvas = document.getElementById("canvas"),
+                canvasTarget = document.getElementById("canvas-target"),
+                dataPre = document.getElementById("data"),
+                toggleButton = document.getElementById("toggle"),
+                context = canvas.getContext("2d"),
+                img = document.createElement("img"),
+                data,
+                socialData;
+
+        // Default image
+        img.src = 'example.jpg';
+
+        // To enable drag and drop
+        toggleButton.addEventListener("click", function(e) {
+            e.preventDefault();
+            canvas.style.display = (canvas.style.display === 'none') ? 'inline-block' : 'none';
+        }, false);
+        toggleButton.click();
+
+        // Image loading
+        img.addEventListener("load", function() {
+            context.drawImage(img, 0, 0, canvas.width, canvas.height);
+            go();
+        }, false);
+
+        // To enable drag and drop
+        canvas.addEventListener("dragover", function(evt) {
+            evt.preventDefault();
+        }, false);
+
+        // Handle dropped image file - only Firefox and Google Chrome
+        canvas.addEventListener("drop", function(evt) {
+
+            var files = evt.dataTransfer.files;
+            if (files.length > 0) {
+                var file = files[0];
+                if (typeof FileReader !== "undefined" && file.type.indexOf("image") != -1) {
+                    var reader = new FileReader();
+                    // Note: addEventListener doesn't work in Google Chrome for this event
+                    reader.onload = function(evt) {
+                        img.src = evt.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+            evt.preventDefault();
+        }, false);
+
+        var yetUpdateTriangles = {};
+
+        function updateTriangles(chosenTriangleIds, trianglesCategory, _dontUpdateTwice) {
+            if (!data || !chosenTriangleIds) {
+                return;
+            }
+
+            function distance(dot, center) {
+                return Math.sqrt(Math.pow(center[0] - dot[0], 2) + Math.pow(center[1] - dot[1], 2));
+            }
+
+            function getClosestDot(dots, center) {
+                return dots.reduce(function(prev, curr) {
+                    return distance(prev, center) < distance(curr, center) ? prev : curr;
+                });
+            }
+
+            function awayDotFromCenter(dot, center, rate) {
+                return [
+                    center[0] + (dot[0] - center[0]) * rate,
+                    center[1] + (dot[1] - center[1]) * rate
+                ];
+            }
+
+            trianglesCategory = trianglesCategory || 'default';
+            if (typeof yetUpdateTriangles[trianglesCategory] === 'undefined') {
+                yetUpdateTriangles[trianglesCategory] = [];
+            }
+
+            var maxUpdateRate = 4;
+            var chosenTriangleRate = random(1, maxUpdateRate);
+            var center = [data.canvas.width / 2, data.canvas.height / 2];
+
+            for (var i = 0; i < chosenTriangleIds.length; i++) {
+
+                if (_dontUpdateTwice && yetUpdateTriangles[trianglesCategory].indexOf(chosenTriangleIds[i]) > -1) {
+                    continue;
+                }
+
+                var chosenTriangle = data.triangles[chosenTriangleIds[i]];
+                var closestDot = getClosestDot(chosenTriangle, center);
+
+                for (var j = 0; j < chosenTriangle.length; j++) {
+
+                    if (chosenTriangle[j] === closestDot) {
+                        continue;
+                    }
+
+                    data.triangles[chosenTriangleIds[i]][j] = awayDotFromCenter(
+                            data.triangles[chosenTriangleIds[i]][j],
+                            closestDot,
+                            chosenTriangleRate
+                    );
+                }
+
+                yetUpdateTriangles[trianglesCategory].push(chosenTriangleIds[i]);
+            }
+
+            var trianglestoReset = yetUpdateTriangles[trianglesCategory].filter(function(x) {
+                return chosenTriangleIds.indexOf(x) < 0;
+            });
+
+            for (i = 0; i < trianglestoReset.length; i++) {
+                data.triangles[trianglestoReset[i]] = deepClone(data.trianglesInitialValues[trianglestoReset[i]]);
+                yetUpdateTriangles[trianglesCategory].splice(yetUpdateTriangles[trianglesCategory].indexOf(trianglestoReset[i]), 1);
+            }
+        };
+
+        var trianglesBySource = {};
+        var maxData = 50;
+        var minutesIncrement = 3;
+        var beginDate = new Date();
+        // Begins at 5am, yesterday
+        beginDate.setHours(-19, 0, 0, 0);
+
+        function displaySocialData(i) {
+            i = parseInt(i) || 0;
+
+            var curDate = new Date(beginDate);
+            curDate.setMinutes(beginDate.getMinutes() + i * minutesIncrement);
+
+            var text = curDate.toLocaleString() + "\n\n";
+            for (var source in socialData[i]) {
+                text += source + " : " + ~~socialData[i][source] + "\n";
+
+                var trianglesByStep = Math.max(1, ~~(trianglesBySource[source].length / maxData));
+
+                updateTriangles(trianglesBySource[source].slice(0, trianglesByStep * socialData[i][source]), source, true);
+            }
+
+            dataPre.innerText = text;
+
+            DelaunayImage.process(data);
+        }
+
+        function nextInterval(currentInterval) {
+            currentInterval = currentInterval || 0;
+
+            if (!socialData[currentInterval]) {
+                return;
+            }
+
+            displaySocialData(currentInterval);
+
+            setTimeout(function() {
+                nextInterval(currentInterval + 1);
+            }, 50);
+        }
+
+        function dispatchTrianglesBySource() {
+            var randomIds = [...data.triangles.keys()];
+            shuffle(randomIds);
+
+            var i = 0;
+            var trianglesCountBySource = ~~(randomIds.length / Object.keys(socialData[0]).length);
+            for (var source in socialData[0]) {
+                i++;
+                trianglesBySource[source] = randomIds.slice((i - 1) * trianglesCountBySource, i * trianglesCountBySource);
+            }
+        }
+
+        // Go
+        function go() {
+            data = DelaunayImage.getData(img, {canvas: canvasTarget, count: 600});
+            data.trianglesInitialValues = deepClone(data.triangles); // .slice doesn't clone objects in the array
+            socialData = SocialData.generateFakeData(minutesIncrement);
+            dispatchTrianglesBySource();
+
+            yetUpdateTriangles = [];
+
+            nextInterval();
+        };
+    })();
+</script>
+</body>
+</html>
