@@ -13,6 +13,8 @@
 
 <p>Drop an image onto the canvas to change it.</p>
 
+<p>Caution : only Google Chrome is supported.</p>
+
 <input type="number" id="count" value="200">
 
 <button id="go">Go</button>
@@ -27,7 +29,6 @@
 
 <script src="vendor/delaunay-fast/delaunay.js"></script>
 <script src="helpers.js"></script>
-<script src="social-data.js"></script>
 <script src="delaunay-image.js"></script>
 <script>
     (function() {
@@ -37,12 +38,9 @@
                 saveButton = document.getElementById("save"),
                 goButton = document.getElementById("go"),
                 dotsCountInput = document.getElementById("count"),
-                dataPre = document.getElementById("data"),
                 context = canvas.getContext("2d"),
                 img = document.createElement("img"),
-                data,
-                socialData,
-                animateTimeout
+                data
                 ;
 
         // Default image
@@ -206,12 +204,6 @@
                 return;
             }
 
-//            socialData = SocialData.generateFakeData();
-//            dataPre.innerHTML = JSON.stringify(socialData, null, 4);
-
-//            var chosenTriangleId = random(data.triangles.length);
-//            var chosenTriangle = data.triangles[chosenTriangleId];
-//            var chosenCenter = triangleCentroid(chosenTriangle);
             var chosenCenter = [random(200, 400), random(150, 350)];
             var chosenTriangleRate = random(5, 10);
 

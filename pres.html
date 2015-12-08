@@ -218,7 +218,7 @@
         function go() {
             goIterator++;
 
-            data = DelaunayImage.getData(img, {canvas: canvasTarget, count: 3000});
+            data = DelaunayImage.getData(img, {canvas: canvasTarget, count: 2000});
             data.trianglesInitialValues = deepClone(data.triangles); // .slice doesn't clone objects in the array
             socialData = SocialData.generateFakeData(minutesIncrement);
             dispatchTrianglesBySource();
