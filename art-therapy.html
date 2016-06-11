@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="Author" content="Michel Roca">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art Therapy</title>
+</head>
+<body>
+
+<div style="float: left">
+    <canvas id="canvas" height="473" width="473" style="border: 1px solid #000;"></canvas>
+</div>
+
+
+<script src="vendor/fabric.js/dist/fabric.js"></script>
+<script>
+    var colors = {
+        blue: 'blue',
+        red: 'red',
+        yellow: 'yellow',
+        orange: 'rgb(255, 127, 16)',
+        black: 'black',
+        violet: 'rgb(136, 6, 206)',
+        green: 'green'
+    };
+
+    var mainCanvas = document.getElementById('canvas');
+    var mainCtx = mainCanvas.getContext('2d');
+
+    var targetCanvas = document.createElement('canvas');
+    var targetCtx = targetCanvas.getContext('2d');
+    targetCanvas.width = mainCanvas.width;
+    targetCanvas.height = mainCanvas.height;
+
+    var canvasFab = new fabric.Canvas('canvas', {selection: false});
+
+    var gridPoints = 10;
+    var unitSize = Math.floor(canvasFab.width / (gridPoints + 1));
+    var grid = [];
+    var items = [];
+
+    function unit(val) {
+        return val * unitSize;
+    }
+
+    for (var x = 1; x <= gridPoints; x++) {
+        for (var y = 1; y <= gridPoints; y++) {
+            grid.push(new fabric.Circle({
+                radius: 1,
+                fill: 'black',
+                left: unit(x),
+                top: unit(y),
+                lockRotation: true,
+                hasRotatingPoint: false,
+                hasControls: false
+            }));
+
+            canvasFab.add(grid[grid.length - 1]);
+        }
+    }
+
+    canvasFab.on('object:moving', function(options) {
+        options.target.set({
+            left: Math.min(
+                    canvasFab.width - options.target.width,
+                    Math.max(0, Math.round(options.target.left / unitSize) * unitSize)
+            ),
+            top: Math.min(
+                    canvasFab.height - options.target.height,
+                    Math.max(0, Math.round(options.target.top / unitSize) * unitSize)
+            )
+        });
+    });
+
+    var mouseDown = false;
+    canvasFab.on('mouse:down', function() {
+        mouseDown = true;
+        changeCollectionProperty(grid, 'opacity', 1);
+        changeCollectionProperty(items, 'opacity', 1);
+        canvasFab.backgroundImage = null;
+        canvasFab.renderAll();
+    });
+
+    canvasFab.on('mouse:up', function() {
+        mouseDown = false;
+        generateImdAndRedraw();
+    });
+
+    items.push(new fabric.Rect({
+        left: unit(2),
+        top: unit(2),
+        width: unit(5),
+        height: unit(5),
+        fill: colors.red,
+        lockRotation: true,
+        hasRotatingPoint: false,
+        hasControls: false,
+        opacity: 1
+    }));
+
+    items.push(new fabric.Circle({
+        radius: unit(2),
+        left: unit(4),
+        top: unit(4),
+        fill: colors.yellow,
+        lockRotation: true,
+        hasRotatingPoint: false,
+        hasControls: false,
+        opacity: 1
+    }));
+
+    items.push(new fabric.Triangle({
+        width: unit(7),
+        height: unit(6),
+        left: unit(2),
+        top: unit(2),
+        fill: colors.blue,
+        lockRotation: true,
+        hasRotatingPoint: false,
+        hasControls: false,
+        opacity: 1
+    }));
+
+    items.forEach(function(item) {
+        item.set('globalCompositeOperation', 'isolation');
+        canvasFab.add(item);
+    });
+
+    // ===============
+
+
+    function arraySum(arr) {
+        return arr.reduce(function(a, b) {
+            return a + b;
+        });
+    }
+
+    function replaceColorIfNeeded(current, from, to, tolerance) {
+        var isConcerned =
+                Math.abs(current[0] - from[0]) <= tolerance &&
+                Math.abs(current[1] - from[1]) <= tolerance &&
+                Math.abs(current[2] - from[2]) <= tolerance;
+
+        if (!isConcerned) {
+            return current;
+        }
+
+        return [to[0], to[1], to[2]]
+    }
+
+    function recolor(canvasEl) {
+        var ctxEl = canvasEl.getContext('2d');
+        var imageData = ctxEl.getImageData(0, 0, canvasEl.width, canvasEl.height);
+        var data = imageData.data;
+
+        for (var i = 0, n = data.length; i < n; i += 4) {
+            var color = [data[i], data[i + 1], data[i + 2]];
+            if (!arraySum(color)) {
+                continue;
+            }
+
+            var colorConvertion = {
+                violet: [[85, 0, 170], [136, 6, 206]],
+                green: [[113, 113, 142], [0, 255, 0]],
+                orange: [[255, 127, 0], [255, 127, 16]],
+                black: [[150, 84, 105], [0, 0, 0]]
+            };
+
+            for (var name in colorConvertion) {
+                var fromColor = colorConvertion[name][0];
+                var targetColor = colorConvertion[name][1];
+                color = replaceColorIfNeeded(color, fromColor, targetColor, 30);
+            }
+
+            data[i] = color[0];
+            data[i + 1] = color[1];
+            data[i + 2] = color[2];
+            data[i + 3] = 255;
+        }
+        ctxEl.putImageData(imageData, 0, 0);
+    }
+
+    function changeCollectionProperty(collection, property, value) {
+        collection.forEach(function(item) {
+            item.set(property, value);
+        });
+    }
+
+    function setCanvasBg() {
+        fabric.Image.fromURL(targetCanvas.toDataURL(), function(img) {
+            canvasFab.backgroundImage = img;
+            canvasFab.renderAll();
+        });
+    }
+
+    function generateImg(multiplier, callback) {
+        var tmpCanvas = document.createElement('canvas');
+        var tmpCtx = tmpCanvas.getContext('2d');
+
+        multiplier = multiplier || 1;
+        tmpCanvas.width = canvasFab.width * multiplier;
+        tmpCanvas.height = canvasFab.height * multiplier;
+
+        var img = new Image;
+        img.onload = function() {
+            tmpCtx.drawImage(img, 0, 0);
+            recolor(tmpCanvas);
+
+            if (multiplier !== 1) {
+                var filter = new fabric.Image.filters.Resize();
+                filter.applyTo(tmpCanvas, 1 / multiplier, 1 / multiplier);
+            }
+
+            targetCtx.drawImage(tmpCanvas, 0, 0);
+            callback && callback();
+        };
+
+        targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+        canvasFab.deactivateAll().renderAll();
+        changeCollectionProperty(grid, 'opacity', 0);
+        changeCollectionProperty(items, 'opacity', 0.4);
+        canvasFab.backgroundImage = null;
+
+        img.src = canvasFab.toDataURL({multiplier: multiplier});
+    }
+
+    function generateImdAndRedraw() {
+        generateImg(2, function() {
+            changeCollectionProperty(grid, 'opacity', 0);
+            changeCollectionProperty(items, 'opacity', 0);
+
+            if (!mouseDown) {
+                setCanvasBg();
+            }
+        });
+    }
+
+    setTimeout(generateImdAndRedraw, 300);
+
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@
   ],
   "description": "Social Delaunay Triangulation in JavaScript",
   "dependencies": {
-    "delaunay-fast": "~1.0.1"
+    "delaunay-fast": "~1.0.1",
+    "fabric.js": "fabric#^1.6.2"
   }
 }
