@@ -74,15 +74,6 @@
 
             // ==================
 
-
-//        rectangle - 2,( colonnes--- l'ideal  serait que l on puisse placer le rectangle à gauche et à droite d un point
-//
-//        carré - 5 colonnes
-//        losange - 7 colonnes
-//        rond - 6 colonnes
-//        triangle - 7 collone de largeur, 6 colonnes de hauteur
-//        triangle rectangle - 5 colonnes de largeur, 5 colonnes de hauteur
-
             // First line
             buttons[colors[i]].push(new fabric.Rect({
                 width: unit(0.6),
@@ -98,10 +89,10 @@
                 height: unit(0.5),
                 angle: 45,
                 left: unit(0.4),
-                centeredRotation: true,
                 cloneParameters: {
                     width: Math.sqrt(Math.pow(7, 2) / 2),
-                    height: Math.sqrt(Math.pow(7, 2) / 2)
+                    height: Math.sqrt(Math.pow(7, 2) / 2),
+                    left: 4
                 }
             }));
 
@@ -334,9 +325,7 @@
                 lockMovementY: false,
                 hasControls: false,
                 hasBorders: true,
-                hoverCursor: 'move',
-                top: 0,
-                left: 0
+                hoverCursor: 'move'
             });
         }
 
@@ -365,13 +354,16 @@
                 return;
             }
 
+            newItem.left = 0;
+            newItem.top = 0;
+
             if (newItem.cloneParameters) {
                 for (var param in newItem.cloneParameters) {
                     if (!newItem.cloneParameters.hasOwnProperty(param)) {
                         return;
                     }
 
-                    if (['width', 'height', 'radius'].indexOf(param) > -1) {
+                    if (['width', 'height', 'top', 'left', 'radius'].indexOf(param) > -1) {
                         newItem.set(param, unit(newItem.cloneParameters[param]));
                     } else if (['path'].indexOf(param) > -1) {
                         var pathOptions = newItem.toObject();
@@ -392,15 +384,40 @@
         }, false);
 
         canvasFab.on('object:moving', function(options) {
+            var leftDelta = 0;
+            var rightDelta = 0;
+            var topDelta = 0;
+            var bottomDelta = 0;
+
+            // Ugly hack to avoid box size problems for half-circles
+            if (options.target.type === 'circle') {
+                if (options.target.startAngle === Math.PI / 2) {
+                    rightDelta = options.target.width / 2;
+                } else if (options.target.startAngle === 3 * Math.PI / 2) {
+                    leftDelta = options.target.width / 2;
+                } else if (options.target.startAngle === Math.PI) {
+                    bottomDelta = options.target.width / 2;
+                } else if (options.target.endAngle === Math.PI) {
+                    topDelta = options.target.width / 2;
+                }
+            }
+
+            // Ugly hack to avoid box size problems for roted squares
+            if (options.target.type === 'rect' && options.target.angle === 45) {
+                rightDelta = unit(1);
+                leftDelta = -unit(4);
+                bottomDelta = -unit(2);
+            }
+
             options.target.set({
-                left: Math.min(
-                        canvasFab.width - options.target.width,
-                        Math.max(0, Math.round(options.target.left / unitSize) * unitSize)
-                ),
-                top: Math.min(
-                        canvasFab.height - options.target.height,
-                        Math.max(0, Math.round(options.target.top / unitSize) * unitSize)
-                )
+                left: Math.round(Math.min(
+                                canvasFab.width - options.target.width + rightDelta,
+                                Math.max(-leftDelta, options.target.left)
+                        ) / unitSize) * unitSize,
+                top: Math.round(Math.min(
+                                canvasFab.height - options.target.height + bottomDelta,
+                                Math.max(-topDelta, options.target.top)
+                        ) / unitSize) * unitSize
             });
         });
 
@@ -545,7 +562,7 @@
             });
         }
 
-        function generateImg(multiplier, hideGrid) {
+        function generateImg(multiplier) {
             multiplier = multiplier || 1;
             targetCanvas.width = canvasFab.width * multiplier;
             targetCanvas.height = canvasFab.height * multiplier;
@@ -555,9 +572,6 @@
             changeCollectionProperty(grid, 'opacity', 0);
             changeCollectionProperty(items, 'opacity', 0.4);
             canvasFab.backgroundImage = null;
-
-
-            targetCanvas.backgroundImage = null;
 
             var img = new Image;
             img.onload = function() {
