@@ -27,7 +27,7 @@
     <canvas id="buttons" height="473" width="473" style="border: none;"></canvas>
 </div>
 <div class="container-right" style="float: right; width: 50%;">
-    <canvas id="canvas" height="473" width="473" style="border: 1px solid #000;"></canvas>
+    <canvas id="canvas" height="473" width="473" style="border: 2px solid #000;"></canvas>
 </div>
 
 
@@ -354,8 +354,8 @@
                 return;
             }
 
-            newItem.left = 0;
-            newItem.top = 0;
+            newItem.left = unit(3);
+            newItem.top = unit(3);
 
             if (newItem.cloneParameters) {
                 for (var param in newItem.cloneParameters) {
@@ -378,6 +378,10 @@
             }
 
             cleanFabObject(newItem);
+
+            if (items.length >= 3) {
+                items.splice(0, 1);
+            }
 
             items.push(newItem);
             canvasFab.add(items[items.length - 1]);
