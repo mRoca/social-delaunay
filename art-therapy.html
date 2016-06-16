@@ -6,6 +6,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Art Therapy</title>
     <style>
+        @font-face {
+            font-family: 'futura';
+            src: url('font/FuturaStd-Light.otf');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'futura';
+            src: url('font/FuturaStd-Heavy.otf');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: futura;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            min-height: 100%;
+        }
+
+        button {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            padding: 5px 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #555;
+        }
+
+        .overlay {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: #fff;
+            position: fixed;
+            z-index: 9999;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            cursor: pointer;
+            opacity: 1;
+            transition: opacity 1s ease .15s;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+        }
+
+        .overlay p {
+            position: absolute;
+            top: 20%;
+            left: 20%;
+        }
+
+        .screen {
+            padding: 30px;
+        }
+
         .container-left {
             float: left;
             width: 50%;
@@ -19,19 +91,105 @@
             float: right;
             width: 50%;
         }
+
+        .container-right .canvas-container {
+            margin: auto;
+        }
+
+        .button-container {
+            text-align: center;
+            padding-top: 30px;
+        }
+
+        .screen, .print {
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        .print {
+            display: none;
+        }
+
+        .print-img-container {
+            width: 70%;
+            height: 100%;
+            text-align: center;
+        }
+
+        .print-img-container img {
+            max-height: 100%;
+            max-width: 100%;
+            display: inline-block;
+        }
+
+        .print-text-container {
+            position: absolute;
+            top: 15%;
+            left: 60%;
+            width: 30%;
+            font-size: 8pt;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .print-text-container p {
+            margin-bottom: 20px;
+        }
+
+        @media print {
+            body > * {
+                display: none;
+            }
+
+            .print {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
 
-<div class="container-left" style="float: left; width: 50%;">
-    <canvas id="buttons" height="473" width="473" style="border: none;"></canvas>
+<div class="overlay" id="overlay">
+    <p>
+        Dessinez<br />
+        une lettre à l’aide<br />
+        de trois formes<br />
+        et imprimez-la
+    </p>
 </div>
-<div class="container-right" style="float: right; width: 50%;">
-    <canvas id="canvas" height="473" width="473" style="border: 2px solid #000;"></canvas>
+<div class="screen">
+    <div class="container-left">
+        <canvas id="buttons" height="473" width="473" style="border: none;"></canvas>
+    </div>
+    <div class="container-right">
+        <canvas id="canvas" height="473" width="473" style="border: 2px solid #000;"></canvas>
+        <div class="button-container">
+            <button id="print" type="button">Imprimer</button>
+        </div>
+    </div>
+</div>
+
+<div class="print">
+    <div class="print-img-container">
+        <img id="print-img" src="" alt="" />
+    </div>
+    <div class="print-text-container" id="print-text"></div>
 </div>
 
 
 <script src="vendor/fabric.js/dist/fabric.js"></script>
+<script>
+    (function() {
+        var overlay = document.getElementById('overlay');
+        overlay.addEventListener('click', function() {
+            overlay.classList.add('hidden');
+            setTimeout(function() {
+                overlay.style.display = 'none';
+            }, 1150)
+        }, false);
+    })();
+</script>
 <script>
     function extend(a, b) {
         for (var i in b) {
@@ -98,27 +256,31 @@
 
             var trianglePathBL = 'M0 0 L0 _unit_ L_unit_ _unit_ Z';
             var trianglePathTR = 'M0 0 L_unit_ _unit_ L_unit_ 0 Z';
-            var trianglePathTF = 'M0 0 L0 _unit_ L_unit_ 0 Z';
+            var trianglePathTL = 'M0 0 L0 _unit_ L_unit_ 0 Z';
             var trianglePathBR = 'M_unit_ 0 L_unit_ _unit_ L0 _unit_ Z';
 
             buttons[colors[i]].push(new fabric.Path(trianglePathBL.replace(/_unit_/g, unit(0.55)), {
                 cloneParameters: {
-                    path: trianglePathBL
+                    path: trianglePathBL,
+                    pathType: 'BL'
                 }
             }));
             buttons[colors[i]].push(new fabric.Path(trianglePathTR.replace(/_unit_/g, unit(0.55)), {
                 cloneParameters: {
-                    path: trianglePathTR
+                    path: trianglePathTR,
+                    pathType: 'TR'
                 }
             }));
-            buttons[colors[i]].push(new fabric.Path(trianglePathTF.replace(/_unit_/g, unit(0.55)), {
+            buttons[colors[i]].push(new fabric.Path(trianglePathTL.replace(/_unit_/g, unit(0.55)), {
                 cloneParameters: {
-                    path: trianglePathTF
+                    path: trianglePathTL,
+                    pathType: 'TL'
                 }
             }));
             buttons[colors[i]].push(new fabric.Path(trianglePathBR.replace(/_unit_/g, unit(0.55)), {
                 cloneParameters: {
-                    path: trianglePathBR
+                    path: trianglePathBR,
+                    pathType: 'BR'
                 }
             }));
 
@@ -297,7 +459,6 @@
             });
         }
     })();
-
 </script>
 <script>
     (function() {
@@ -313,7 +474,6 @@
         var items = [];
         var grid = [];
         var mouseDown = false;
-        var mainCanvasInitialized = false;
 
         function unit(val) {
             return val * unitSize;
@@ -358,21 +518,23 @@
             newItem.top = unit(3);
 
             if (newItem.cloneParameters) {
-                for (var param in newItem.cloneParameters) {
-                    if (!newItem.cloneParameters.hasOwnProperty(param)) {
+                var cloneParameters = extend({}, newItem.cloneParameters);
+                for (var param in cloneParameters) {
+                    if (!cloneParameters.hasOwnProperty(param)) {
                         return;
                     }
 
                     if (['width', 'height', 'top', 'left', 'radius'].indexOf(param) > -1) {
-                        newItem.set(param, unit(newItem.cloneParameters[param]));
+                        newItem.set(param, unit(cloneParameters[param]));
                     } else if (['path'].indexOf(param) > -1) {
                         var pathOptions = newItem.toObject();
                         delete pathOptions.path;
                         delete pathOptions.pathOffset;
 
-                        newItem = new fabric.Path(newItem.cloneParameters[param].replace(/_unit_/g, unit(5)), pathOptions);
+                        newItem = new fabric.Path(cloneParameters[param].replace(/_unit_/g, unit(5)), pathOptions);
+                        newItem.cloneParameters = cloneParameters;
                     } else {
-                        newItem.set(param, newItem.cloneParameters[param]);
+                        newItem.set(param, cloneParameters[param]);
                     }
                 }
             }
@@ -413,6 +575,12 @@
                 bottomDelta = -unit(2);
             }
 
+            // Ugly hack to avoid box size problems for roted triangles
+            if (options.target.type === 'triangle' && (options.target.angle === 90 || options.target.angle === 270)) {
+                rightDelta = unit(1);
+                bottomDelta = -unit(1);
+            }
+
             options.target.set({
                 left: Math.round(Math.min(
                                 canvasFab.width - options.target.width + rightDelta,
@@ -434,56 +602,15 @@
         });
 
         canvasFab.on('object:added', function() {
-            if (mainCanvasInitialized) {
-                generateImdAndRedraw();
-            }
+            generateImdAndRedraw();
+        });
+
+        canvasFab.on('object:modified', function() {
+            generateImdAndRedraw();
         });
 
         canvasFab.on('mouse:up', function() {
             mouseDown = false;
-            generateImdAndRedraw();
-        });
-
-        items.push(new fabric.Rect({
-            left: unit(2),
-            top: unit(2),
-            width: unit(5),
-            height: unit(5),
-            fill: 'red',
-            lockRotation: true,
-            hasRotatingPoint: false,
-            hasControls: false,
-            opacity: 1
-        }));
-
-        items.push(new fabric.Circle({
-            startAngle: 0,
-            endAngle: Math.PI,
-            radius: unit(3),
-            left: unit(4),
-            top: unit(4),
-            fill: 'yellow',
-            lockRotation: true,
-            hasRotatingPoint: false,
-            hasControls: false,
-            opacity: 1
-        }));
-
-        //    items.push(new fabric.Triangle({
-        //        width: unit(7),
-        //        height: unit(6),
-        //        left: unit(2),
-        //        top: unit(2),
-        //        fill: 'blue',
-        //        globalCompositeOperation: 'isolation',
-        //        lockRotation: true,
-        //        hasRotatingPoint: false,
-        //        hasControls: false,
-        //        opacity: 1
-        //    }));
-
-        items.forEach(function(item) {
-            canvasFab.add(item);
         });
 
         function replaceColorIfNeeded(current, from, to, tolerance) {
@@ -566,7 +693,7 @@
             });
         }
 
-        function generateImg(multiplier) {
+        function generateImg(multiplier, callback) {
             multiplier = multiplier || 1;
             targetCanvas.width = canvasFab.width * multiplier;
             targetCanvas.height = canvasFab.height * multiplier;
@@ -594,17 +721,154 @@
                     setCanvasBg();
                 }
 
-                mainCanvasInitialized = true;
+                if (callback) {
+                    callback();
+                }
             };
 
             img.src = canvasFab.toDataURL({multiplier: multiplier});
         }
 
         function generateImdAndRedraw() {
-            generateImg(2, true);
+            generateImg(2);
         }
 
-        setTimeout(generateImdAndRedraw, 300);
+
+        // Print button
+
+        var descriptionMessages = [
+            {type: "TG", color: "yellow", message: "La déception due à la non-réalisation de ses espoirs, et la crainte que le fait d’exprimer de nouveaux objectifs ne le conduise qu’à d’autres échecs, ont engendré une anxiété considérable. Il essaie d’y échapper en se retirant et en se pro­tégeant par une attitude de réserve prudente. Sautes d’humeur ; déprimé."},
+            {type: "TG", color: "blue", message: "L’anxiété et une insatisfaction inquiète créée par les circonstances ou par des besoins affectifs non remplis ont provoqué une tension grave. Il essaie d’y échapper en se réfugiant dans un état de sécurité dégagé de tout conflit. Il peut ainsi se détendre et se remettre petit à petit."},
+            {type: "TG", color: "red", message: "Ecarte ses ambitions et renonce à son désir de prestige, préférant vivre agréablement et satis­faire son besoin de confort et de sécurité. Veut rattraper ce qu’il sent avoir laissé passer en vivant de façon trop intense ; pense se libérer ainsi de tout ce qui l’oppresse."},
+            {type: "TD", color: "yellow", message: "Son besoin de se sentir à l’origine des choses et d’avoir un domaine d’influence plus vaste le perturbe ; il est mené par ses désirs et ses espoirs. Essaie peut-être d’avoir un champ d’ac­tivité trop vaste."},
+            {type: "TD", color: "blue", message: "Voudrait que des événements intéressants et passionnants se passent. Capable de se faire apprécier pour son intérêt manifeste, pour la grande ouverture de son charme. Grande ima­gination ; livré à la fantaisie et à la rêverie."},
+            {type: "TD", color: "red", message: "Veut écarter ce qui l’encombre, suivre ses impul­sions et être mêlé à des événements qui sortent de l’ordinaire et qui soient passionnants. Il espère ainsi atténuer l’intensité de ses conflits, mais son attitude impulsive l’amène à prendre des risques."},
+            {type: "TB", color: "yellow", message: "Cherche une relation d’affection qui lui apporte l’épanouissement et le bonheur. Capable d’un enthousiasme émotif profond. Prêt à coopérer, et désireux de s’adapter s’il le faut pour réaliser le lien d’affection qu’il désire. A besoin de la même considération et de la même compréhension de la part d’autrui."},
+            {type: "TB", color: "blue", message: "Reste maître de lui-même de façon stricte pour ne pas craquer devant ses difficultés. A besoin de circonstances plus faciles et plus équilibrées pour se sentir plus en sécurité et avoir la possi­bilité de se rétablir."},
+            {type: "TB", color: "red", message: "Malheureux de la résistance qu’il éprouve dès qu’il essaie de s’affirmer. Il croit cependant qu’il ne peut pas faire grand-chose et qu’il doit tirer le meilleur parti possible de la situation."},
+            {type: "TH", color: "yellow", message: "Alerte et très observateur. Cherche des voies nouvelles lui offrant une plus grande liber­té et la possibilité d’en tirer le plus grand parti. Veut se prouver ses propres possibilités et être considéré. Lutte pour combler le fossé qu’il sent entre lui et les autres."},
+            {type: "TH", color: "blue", message: "Les tensions créées en essayant de s’adapter à des conditions qui dépassent réellement ses moyens ont engendré une anxiété profonde et un sentiment d’incapacité personnelle (non reconnue par le sujet). Il cherche à se réfugier dans une situation plus tranquille et sans problème où il n’aura plus à s’affirmer ou à lutter contre une telle tension."},
+            {type: "TH", color: "red", message: "Ardent, et plein de vie, adore l’action. Son activité est orientée vers le succès ou la conquête ; désire vivre pleinement."},
+            {type: "DCB", color: "yellow", message: "Veut élargir son domaine d’activité et maintient que ses espoirs et ses idées sont réalisables. Désemparé par la crainte d’être empêché de faire ce qu’il veut ; a besoin de conditions apaisantes, et d’être rassuré pour reprendre confiance."},
+            {type: "DCB", color: "blue", message: "Besoin éperdu d’un lien tendre et sympathique, et d’une harmonie parfaite. Besoin impérieux de tendresse et d’affection. Sensible à tout ce qui est beau."},
+            {type: "DCB", color: "red", message: "Veut élargir son champ d’activité, et insiste pour que ses espoirs et ses idées soient réalistes. Dé­semparé par la peur d’être empêché de faire ce qu’il veut ; a besoin de conditions apaisantes et d’un environnement calme pour rétablir sa con­fiance en soi."},
+            {type: "DCH", color: "yellow", message: "Peu sûr. Cherche des racines, une sécurité affec­tive, et un environnement qui lui donne plus d’agrément et moins de problèmes, mais ne désire pas ou est incapable de faire l’effort nécessaire."},
+            {type: "DCH", color: "blue", message: "Agit avec calme, avec le minimum d’agitation pour conserver les rapports qu’il a. Aime être à l’aise et détendu avec ses associés et son entourage proche."},
+            {type: "DCH", color: "red", message: "Se sent distrait, cerné et inquiet ; considère que les circonstances le forcent à réduire ses désirs. Veut éviter tout conflit ouvert avec autrui et être tranquille."},
+            {type: "DCG", color: "yellow", message: "Essaie d’améliorer sa position et son prestige. Insatisfait de la situation dans laquelle il se trouve ; pense qu’une amélioration est essentielle pour son estime de soi."},
+            {type: "DCG", color: "blue", message: "A besoin d’une amitié chaleureuse mais ne tolère pas que ses proches ne lui donnent pas une considération toute particulière. Si celle-ci se fait attendre, il se détourne d’eux."},
+            {type: "DCG", color: "red", message: "Exerce son initiative personnelle en venant à bout des obstacles et des difficultés. Détient, ou souhaite obtenir, une position d’autorité ou avoir la maîtrise des événements."},
+            {type: "DCD", color: "yellow", message: "Facilement touché par son entourage et très vite ému par les sentiments d’autrui. Cherche à avoir des rapports sympathiques et une occupation qui les favorise."},
+            {type: "DCD", color: "blue", message: "S’applique à améliorer son image aux yeux des autres pour obtenir leur acquiescement et leur accord à ses besoins et ses désirs."},
+            {type: "DCD", color: "red", message: "Désolé par les obstacles auxquels il est confronté. Aucun goût pour toute forme d’activité ou tout effort supplémentaire. A besoin de paix et de calme. A besoin d’éviter tout ce qui peut l’an­goisser davantage."},
+            {type: "C", color: "yellow", message: "Grande imagination ; livré à la fantaisie et à la rêverie. Attend ardemment que des événements intéressants et passionnants se produisent ; veut être admiré pour son charme."},
+            {type: "C", color: "blue", message: "Recherche le calme et l’épanouissement par une forme quelconque de fascination, la contemplation du beau et de l’esthétique, ou la quête d’un rapport parfait."},
+            {type: "C", color: "red", message: "Travaille bien en collaboration avec autrui. A be­soin dans sa vie personnelle de compréhension réciproque. N ’aime pas la discorde."},
+            {type: "CA", color: "yellow", message: "Se sent insuffisamment estimé dans la situation présente, et cherche des conditions différentes où il aura plus d’occasion de prouver sa valeur."},
+            {type: "CA", color: "blue", message: "Travaille bien en collaboration avec d’autres, mais ne veut pas prendre le rôle principal. A besoin dans sa vie personnelle de compréhension. N’aime pas les désaccords."},
+            {type: "CA", color: "red", message: "L’activité a plus d’importance que la coopération et l’harmonie. Le sujet compte qu’une activité appropriée apportera l‘harmonie dans tous les cas."},
+            {type: "R", color: "yellow", message: "Désire croire que ses espoirs sont réalisables, mais a besoin d’encouragement et d’appuis soli­des. Applique des critères très exigeants dans son choix d’un partenaire et veut des garanties pour toute perte ou déception."},
+            {type: "R", color: "blue", message: "Désire être estimé et respecté et cherche à obtenir ceci en formant des relations harmo­nieuses basées sur le respect mutuel."},
+            {type: "R", color: "red", message: "La déception et la peur que le fait d’envisager de nouveaux buts ne rime à rien ont engendré un état de tension et d’anxiété. Il voudrait des con­tacts agréables avec les autres et la possibilité de les approfondir, mais il sent que ses rapports sont vides et ses progrès entravés. Il réagit par une activité intense et laborieuse qui a pour but la réalisation de ses désirs à tout prix."},
+            {type: "TBD", color: "yellow", message: "Sa situation comporte des éléments critiques ou dangereux pour lesquels il est impératif de trouver une solution. Cette situation peut mener à des décisions soudaines et même imprudentes. Vo­lontaire ; repousse tout conseil de la part d’autrui."},
+            {type: "TBD", color: "blue", message: "Se sent coupé et malheureux à cause de la dif­ficulté à réaliser le degré essentiel de coopéra­tion et d’harmonie qu’il désire."},
+            {type: "TBD", color: "red", message: "Actif, mais a le sentiment de ne pas progresser suffisamment, ou de ne pas être récompensé pour ses efforts."},
+            {type: "TPD", color: "yellow", message: "Désespéré, a besoin d’un soulagement quelcon­que. Désire un repos physique, une sécurité dé­gagée de tout problème, et la possibilité de se rétablir."},
+            {type: "TPD", color: "blue", message: "Incapable de faire l’effort nécessaire pour par­venir à son but. Se sent délaissé, désire une plus grande sécurité, une affection chaleureuse, moins de problèmes."},
+            {type: "TPD", color: "red", message: "Progresse difficilement malgré ses efforts pour dissimuler son impulsivité ; ses activités sont des sources de problèmes et d’incertitude, ce qui le rend nerveux et irritable."},
+            {type: "TPM", color: "yellow", message: "A besoin d’un changement dans sa vie, ou dans ses relations, qui lui permette de se libérer de sa tension. Cherche une solution qui lui ouvre des possibilités nouvelles et meilleures, et lui per­mette de réaliser ses espoirs."},
+            {type: "TPM", color: "blue", message: "Agit avec ordre, méthode et indépendance. A besoin de la compréhension attentionnée de quel­qu’un qui saura lui donner sa considération et son approbation."},
+            {type: "TPM", color: "red", message: "Autoritaire, ou dans une position d’autorité, mais sent probablement que tout progrès est rendu problématique par les difficultés qu’il a. Persévère malgré l’opposition qu’il rencontre."},
+            {type: "TBM", color: "yellow", message: "Veut faire bonne impression et passer pour une personnalité particulière. Cherche donc toujours à s’assurer qu’il y parvient et à voir la réaction d’autrui à son égard. Il a ainsi l’impression d’avoir la maîtrise de la situation. Manœuvre habilement pour avoir de l’influence et obtenir une considé­ration particulière."},
+            {type: "TBM", color: "blue", message: "Evite tout effort excessif, a besoin de racines, de sécurité et d’amitié."},
+            {type: "TBM", color: "red", message: "Recherche le succès. Désire surmonter les obsta­cles et les oppositions, et prendre ses propres décisions. Poursuit son but avec indépendance et initiative. Ne veut pas dépendre du bon vouloir des autres."},
+            {type: "DH", color: "yellow", message: "Actif, peu persévérant et agité. Se sent frustré par la lenteur avec laquelle les événements se développent. Ce conflit provoque son irritabilité, des sautes d’humeur et un manque de persévé­rance dans la poursuite du but qu’il s’est fixé."},
+            {type: "DH", color: "blue", message: "A besoin d’un environnement reposant. Veut ne plus être sous tension et être dégagé des conflits et des désagréments. S’efforce de maîtriser la situation et de s’occuper de ses problèmes par un comportement prudent. Finesse de sentiments ; remarque les détails."},
+            {type: "DH", color: "red", message: "Voudrait agir librement sans inhibition, mais est retenu par son besoin d’envisager les choses sur une base rationnelle, logique et précise."},
+            {type: "DV", color: "yellow", message: "Besoin de considération. Ambitieux, veut impres­sionner et être admiré, tout en étant sympathique. Cherche à combler le fossé qu’il sent entre lui et les autres."},
+            {type: "DV", color: "blue", message: "Ordonné, méthodique et résolu. A besoin du res­pect, de la considération et de la compréhension de ses proches."},
+            {type: "DV", color: "red", message: "Poursuit ses objectifs avec intensité et ne se permet pas de s’en détourner. Veut surmonter les obstacles devant lesquels ils se trouve et gagner une considération et une importance parti­culière par son succès."}
+        ];
+
+
+        var printImg = document.getElementById('print-img');
+        var printText = document.getElementById('print-text');
+        var printButton = document.getElementById('print');
+
+        printImg.onload = function() {
+
+            function getItemType(item) {
+                if (item.type === 'circle') {
+                    if (item.startAngle === Math.PI / 2) {
+                        return 'DCG';
+                    } else if (item.startAngle === 3 * Math.PI / 2) {
+                        return 'DCD';
+                    } else if (item.startAngle === Math.PI) {
+                        return 'DCH';
+                    } else if (item.endAngle === Math.PI) {
+                        return 'DCB';
+                    } else {
+                        return 'C';
+                    }
+                } else if (item.type === 'rect') {
+                    if (item.width === item.height && item.angle === 45) {
+                        return 'R';
+                    } else if (item.width === item.height) {
+                        return 'CA';
+                    } else if (item.width > item.height) {
+                        return 'DH';
+                    } else {
+                        return 'DV';
+                    }
+                } else if (item.type === 'triangle') {
+                    if (item.angle === 180) {
+                        return 'TB';
+                    } else if (item.angle === 90) {
+                        return 'TD';
+                    } else if (item.angle === 270) {
+                        return 'TG';
+                    } else {
+                        return 'TH';
+                    }
+                } else if (item.type === 'path' && item.cloneParameters && item.cloneParameters.pathType) {
+                    if (item.cloneParameters.pathType === 'BL') {
+                        return 'TBD';
+                    } else if (item.cloneParameters.pathType === 'TR') {
+                        return 'TPD';
+                    } else if (item.cloneParameters.pathType === 'TL') {
+                        return 'TPM';
+                    } else if (item.cloneParameters.pathType === 'BR') {
+                        return 'TBM';
+                    }
+                }
+            }
+
+            var descriptions = [];
+            items.forEach(function(item) {
+                var descriptionMessage = descriptionMessages.find(function(dm) {
+                    return dm.type === getItemType(item) && dm.color === item.fill;
+                });
+
+                if (descriptionMessage) {
+                    descriptions.push('<p>' + descriptionMessage.message + '</p>');
+                } else {
+                    console.log('Item not found', item);
+                }
+            });
+
+            printButton.disabled = false;
+            printText.innerHTML = descriptions.join('');
+            window.print();
+        };
+
+        printButton.addEventListener("click", function(e) {
+            e.preventDefault();
+            printButton.disabled = true;
+
+            generateImg(3, function() {
+                printImg.src = targetCanvas.toDataURL();
+            });
+        }, false);
     })();
 </script>
 </body>
