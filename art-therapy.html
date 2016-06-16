@@ -126,7 +126,7 @@
         .print-text-container {
             position: absolute;
             top: 15%;
-            left: 60%;
+            left: 65%;
             width: 30%;
             font-size: 8pt;
             line-height: 1.2;
@@ -138,6 +138,11 @@
         }
 
         @media print {
+            html {
+                width: 15cm;
+                height: 10cm;
+            }
+
             body > * {
                 display: none;
             }
